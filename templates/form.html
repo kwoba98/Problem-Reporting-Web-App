@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Submission</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        form {
+            max-width: 500px;
+            margin: auto;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+        }
+
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-row label {
+            width: 45%;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Submit Your Problem</h1>
+    <form id="problem-form">
+        <!-- Row for category and location inputs -->
+        <div class="form-row">
+            <div>
+                <label for="category">Select a Category:</label>
+                <select id="category" name="category" onchange="handleCategoryChange()" required>
+                    <option value="">-- Please select a category --</option>
+                    <option value="unemployment">Unemployment</option>
+                    <option value="infrastructure">Infrastructure</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="education">Education</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label for="location">Location:</label>
+                <input type="text" id="location" name="location" placeholder="Enter location" required>
+            </div>
+        </div>
+        <br>
+
+        <!-- Section for entering custom category if "Other" is selected -->
+        <div id="other-category-section" class="hidden">
+            <label for="other-category">Specify the Category:</label>
+            <input type="text" id="other-category" name="other-category" placeholder="Enter custom category">
+        </div>
+        <br>
+
+        <!-- Section for problem description -->
+        <label for="problem-description">Describe the Problem:</label>
+        <textarea id="problem-description" name="problem-description" rows="5" placeholder="Provide details about the problem..." required></textarea>
+        <br><br>
+
+        <!-- Submit button -->
+        <button type="submit">Submit</button>
+    </form>
+
+    <!-- Script to handle dynamic behavior -->
+    <script>
+        document.getElementById("problem-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+    
+            // Collect form values
+            const category = document.getElementById("category").value;
+            const otherCategory = document.getElementById("other-category").value;
+            const problemDescription = document.getElementById("problem-description").value;
+            const location = document.getElementById("location").value;
+    
+            const finalCategory = category === "other" ? otherCategory : category;
+    
+            // Check for validation errors
+            if (!finalCategory || !problemDescription || !location) {
+                alert("All fields are required. Please complete the form.");
+                return;
+            }
+    
+            // Send data to the backend
+            try {
+                const response = await fetch("http://127.0.0.1:5000/submit_problem", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        category: finalCategory,
+                        description: problemDescription,
+                        location: location
+                    })
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Failed to submit data. Please try again.");
+                }
+    
+                const result = await response.json();
+                alert(result.message);
+    
+                // Reset the form after successful submission
+                document.getElementById("problem-form").reset();
+                document.getElementById("other-category-section").classList.add("hidden");
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
+    
+
+
+
+
+
+    <h2>Complaint Categories Visualization</h2>
+    <canvas id="categoriesChart" width="400" height="200"></canvas>
+
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Fetch categories data and render the graph
+        async function fetchCategoriesAndRenderChart() {
+            try {
+                const response = await fetch("http://127.0.0.1:5000/get-categories");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch categories.");
+                }
+
+                const categoriesData = await response.json();
+
+                // Extract data for Chart.js
+                const labels = categoriesData.map(item => item.category);
+                const counts = categoriesData.map(item => item.count);
+
+                // Render the chart
+                const ctx = document.getElementById("categoriesChart").getContext("2d");
+                new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: "Number of Complaints",
+                            data: counts,
+                            backgroundColor: "rgba(75, 192, 192, 0.2)",
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error(error.message);
+            }
+        }
+
+        // Fetch and render chart on page load
+        window.onload = fetchCategoriesAndRenderChart;
+
+        // Update form submission logic
+        document.getElementById("problem-form").addEventListener("submit", async function(event) {
+            event.preventDefault(); 
+
+            const category = document.getElementById("category").value;
+            const otherCategory = document.getElementById("other-category").value;
+            const problemDescription = document.getElementById("problem-description").value;
+            const location = document.getElementById("location").value;
+
+            const finalCategory = category === "other" ? otherCategory : category;
+
+            if (!finalCategory || !problemDescription || !location) {
+                alert("All fields are required. Please complete the form.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/submit-problem", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        category: finalCategory,
+                        description: problemDescription,
+                        location: location
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to submit data.");
+                }
+
+                alert("Your problem has been submitted successfully!");
+                document.getElementById("problem-form").reset();
+                document.getElementById("other-category-section").classList.add("hidden");
+
+                // Update the chart after submission
+                fetchCategoriesAndRenderChart();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
+    
+    
+</body>
+</html>
